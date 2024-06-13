@@ -1,0 +1,215 @@
+// store.js
+import { configureStore } from '@reduxjs/toolkit';
+import authReducer from './authSlice';
+import timeoutReducer from './timeoutSlice';
+
+const store = configureStore({
+  reducer: {
+    auth: authReducer,
+    timeout: timeoutReducer,
+  },
+});
+
+export default store;
+
+
+
+
+
+// authSlice.js
+import { createSlice } from '@reduxjs/toolkit';
+
+const authSlice = createSlice({
+  name: 'auth',
+  initialState: { isLoggedIn: false },
+  reducers: {
+    login: (state) => {
+      state.isLoggedIn = true;
+    },
+    logout: (state) => {
+      state.isLoggedIn = false;
+    },
+  },
+});
+
+export const { login, logout } = authSlice.actions;
+export default authSlice.reducer;
+
+
+
+// timeoutSlice.js
+import { createSlice } from '@reduxjs/toolkit';
+
+const timeoutSlice = createSlice({
+  name: 'timeout',
+  initialState: { showWarning: false },
+  reducers: {
+    showWarning: (state) => {
+      state.showWarning = true;
+    },
+    hideWarning: (state) => {
+      state.showWarning = false;
+    },
+  },
+});
+
+export const { showWarning, hideWarning } = timeoutSlice.actions;
+export default timeoutSlice.reducer;
+
+// TimeoutHandler.js
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from './authSlice';
+import { showWarning, hideWarning } from './timeoutSlice';
+
+const TimeoutHandler = () => {
+  const dispatch = useDispatch();
+  const { showWarning: showTimeoutWarning } = useSelector((state) => state.timeout);
+
+  useEffect(() => {
+    let timeoutWarningTimer, logoutTimer;
+
+    const resetTimers = () => {
+      clearTimeout(timeoutWarningTimer);
+      clearTimeout(logoutTimer);
+
+      timeoutWarningTimer = setTimeout(() => {
+        dispatch(showWarning());
+      }, 5 * 60 * 1000); // 5 minutes of inactivity
+
+      logoutTimer = setTimeout(() => {
+        dispatch(logout());
+      }, 6 * 60 * 1000); // 1 minute after warning
+    };
+
+    window.addEventListener('mousemove', resetTimers);
+    window.addEventListener('keydown', resetTimers);
+
+    resetTimers();
+
+    return () => {
+      clearTimeout(timeoutWarningTimer);
+      clearTimeout(logoutTimer);
+      window.removeEventListener('mousemove', resetTimers);
+      window.removeEventListener('keydown', resetTimers);
+    };
+  }, [dispatch]);
+
+  return (
+    showTimeoutWarning && (
+      <div className="timeout-warning">
+        <p>You will be logged out soon due to inactivity.</p>
+      </div>
+    )
+  );
+};
+
+export default TimeoutHandler;
+
+// App.js
+import React from 'react';
+import { Provider } from 'react-redux';
+import store from './store';
+import TimeoutHandler from './TimeoutHandler';
+
+const App = () => {
+  return (
+    <Provider store={store}>
+      <div className="App">
+        <TimeoutHandler />
+        {/* Other components */}
+      </div>
+    </Provider>
+  );
+};
+
+export default App;
+
+/* styles.css */
+.timeout-warning {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  padding: 10px;
+  background-color: yellow;
+  border: 1px solid black;
+}
+
+
+
+
+// TimeoutHandler.js
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from './authSlice';
+import { showWarning, hideWarning } from './timeoutSlice';
+
+const TimeoutHandler = () => {
+  const dispatch = useDispatch();
+  const isLoggedIn = useSelector((state) => state.auth.isLoggedIn);
+  const showTimeoutWarning = useSelector((state) => state.timeout.showWarning);
+
+  useEffect(() => {
+    let timeoutWarningTimer, logoutTimer;
+
+    const resetTimers = () => {
+      clearTimeout(timeoutWarningTimer);
+      clearTimeout(logoutTimer);
+
+      timeoutWarningTimer = setTimeout(() => {
+        dispatch(showWarning());
+      }, 5 * 60 * 1000); // 5 minutes of inactivity
+
+      logoutTimer = setTimeout(() => {
+        dispatch(logout());
+        dispatch(hideWarning());
+      }, 6 * 60 * 1000); // 1 minute after warning
+    };
+
+    if (isLoggedIn) {
+      window.addEventListener('mousemove', resetTimers);
+      window.addEventListener('keydown', resetTimers);
+      resetTimers();
+    }
+
+    return () => {
+      clearTimeout(timeoutWarningTimer);
+      clearTimeout(logoutTimer);
+      window.removeEventListener('mousemove', resetTimers);
+      window.removeEventListener('keydown', resetTimers);
+    };
+  }, [dispatch, isLoggedIn]);
+
+  return (
+    isLoggedIn && showTimeoutWarning && (
+      <div className="timeout-warning">
+        <p>You will be logged out soon due to inactivity.</p>
+      </div>
+    )
+  );
+};
+
+export default TimeoutHandler;
+
+
+
+// App.js
+import React from 'react';
+import { Provider } from 'react-redux';
+import store from './store';
+import TimeoutHandler from './TimeoutHandler';
+
+const App = () => {
+  return (
+    <Provider store={store}>
+      <div className="App">
+        <TimeoutHandler />
+        {/* Other components */}
+      </div>
+    </Provider>
+  );
+};
+
+export default App;
+
+
